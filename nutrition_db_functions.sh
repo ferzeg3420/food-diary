@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DATA_BASE='/Users/Fernando/Documents/food_nutrition.db'
+DATA_BASE="${HOME}/Documents/food_nutrition.db"
 
 db_edit()
 {
