@@ -1,0 +1,6 @@
+# __format__, default_weight in grams, calories per gram/mililiter, proteins pg, carbs pg, fats pg, fiber pg
+rice, 170, 3.56, 0.07, 0.75, 0.01, 0.01
+yogurt, 160, 1.031, 0.069, 0.11875, 0.031, 0
+tuna, 120, 1.94, 0.26, 0, 0.11, 0
+beef, 100, 2.62, 0.26, 0, 0.20, 0
+olive oil, 10, 8, 0, 0, 0.9, 0
