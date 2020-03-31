@@ -1,10 +1,19 @@
 #!/bin/bash
 
-DATA_BASE="${HOME}/Documents/food_nutrition.db"
+#DATA_BASE='/Users/Fernando/Documents/food_nutrition.db'
+
+if [ -e "$(dirname "$0")/food_nutrition.db" ]
+then
+   DATA_BASE="$(dirname "$0")/food_nutrition.db"
+else
+   DATA_BASE="$(dirname "$0")/food_diary_directory/food_nutrition.db"
+fi
+
+EDITOR="vim"
 
 db_edit()
 {
-   vim "${DATA_BASE}"
+   $EDITOR "${DATA_BASE}"
    return $?
 }
 

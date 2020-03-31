@@ -4,7 +4,7 @@ OUT_WIDTH=72
 
 lookup_default_serving_size() 
 {
-  exec 3< ~/Documents/food_nutrition.db
+  exec 3< ${DATA_BASE}
 
   echo `grep "^$1\>" <&3 \
        | head -n 1 \
@@ -15,7 +15,7 @@ lookup_default_serving_size()
 
 lookup_per_gram_calories() 
 {
-  exec 3< ~/Documents/food_nutrition.db
+  exec 3< $DATA_BASE
 
   echo `grep "^$1\>" <&3 \
        | head -n 1 \
@@ -26,7 +26,7 @@ lookup_per_gram_calories()
 
 lookup_per_gram_proteins() 
 {
-  exec 3< ~/Documents/food_nutrition.db
+  exec 3< $DATA_BASE
 
   echo `grep "^$1\>" <&3 \
        | head -n 1 \
@@ -37,7 +37,7 @@ lookup_per_gram_proteins()
 
 lookup_per_gram_carbs() 
 {
-  exec 3< ~/Documents/food_nutrition.db
+  exec 3< $DATA_BASE
 
   echo `grep "^$1\>" <&3 \
        | head -n 1 \
@@ -48,7 +48,7 @@ lookup_per_gram_carbs()
 
 lookup_per_gram_fats() 
 {
-  exec 3< ~/Documents/food_nutrition.db
+  exec 3< $DATA_BASE
 
   echo `grep "^$1\>" <&3 \
        | head -n 1 \
@@ -59,7 +59,7 @@ lookup_per_gram_fats()
 
 lookup_per_gram_fiber() 
 {
-  exec 3< ~/Documents/food_nutrition.db
+  exec 3< $DATA_BASE
 
   echo `grep "^$1\>" <&3 \
        | head -n 1 \
@@ -115,17 +115,19 @@ parse_food_name()
    echo $food_name
 }
 
-clean_file() 
+crop_out_non_tag()
 {
-   if [ -e "${1}.tag" ]
-   then
-      infile="${1}.tag"
-   else 
-      infile="${1}.in"
-   fi
-   outfile="${1}.clean"
+   local outfile="${1}.tag" 
 
-   grep -v '^---.*$' "$infile"                       \
+   local tag="$2" 
+
+   sed -n "/^--*[[:space:]]*${tag}/,/^--*/p" | tee "$outfile"
+}
+
+clean_file_helper() 
+{
+   outfile="${1}.clean"
+   grep -v '^---.*$'                                 \
       | grep -v '^ *#'                               \
       | tr '[A-Z]' '[a-z]'                           \
       | grep -v '^ *$'                               \
@@ -134,15 +136,24 @@ clean_file()
       | sed 's/\. *$//'                              \
       | awk 'BEGIN{FS=", ";OFS="\n";ORS="\n"}\
                   {for (i=1; i<=NF; i++) print $i }' \
-      > "${outfile}"
+      | tee "${outfile}"
+}
+
+clean_file() 
+{
+   if [ -z "$2" ]
+   then
+      clean_file_helper "$1"
+   else
+      crop_out_non_tag "$1" "$2" | clean_file_helper "$1"
+   fi
 }
 
 preprocess_clean_file()
 {
-   infile="${1}.clean"
    outfile="${1}.preproc"
 
-   sed 's/^[[:space:]]*a[[:space:]]/1 /' "${infile}" \
+   sed 's/^[[:space:]]*a[[:space:]]/1 /' \
    | awk\
      '{
          if ($1 ~ /[0-9]/ && $2 ~ /grams?|mililiters?/) 
@@ -167,7 +178,8 @@ preprocess_clean_file()
          else 
            print $0
       }' \
-      | sed 's/  / /g' > "$outfile"
+      | sed 's/  / /g' \
+      | tee "$outfile"
 }
 
 calc_calories() 
@@ -353,14 +365,6 @@ process_meal_log()
                   $fiber_counter
 }
 
-crop_out_non_tag()
-{
-   local tag="$1" 
-   local infile="${2}.in" 
-   local outfile="${2}.tag" 
-   sed -n "/^--*[[:space:]]*${tag}/,/^--*/p" "$infile" > "$outfile"
-}
-
 pad()
 {
    local pad="$1"
@@ -407,13 +411,11 @@ nutri_calc()
       local filename="${infile##*/}"
       local outfile_no_extension="/tmp/${filename}"   
        
-      [ -e "${infile}.tag" ] && rm "${infile}.tag" 
-
       cp "$infile" "${outfile_no_extension}.in"
 
-      [ ! -z "$tag" ] && crop_out_non_tag "$tag" "${outfile_no_extension}"
-      clean_file "${outfile_no_extension}"
-      preprocess_clean_file "${outfile_no_extension}"
-      process_meal_log "${outfile_no_extension}"
+      cat "${outfile_no_extension}.in"                     \
+         | clean_file "${outfile_no_extension}"            \
+         | preprocess_clean_file "${outfile_no_extension}" \
+         | process_meal_log "${outfile_no_extension}"
    done
 }
